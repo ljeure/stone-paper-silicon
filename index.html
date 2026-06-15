@@ -16,6 +16,7 @@
             <p class="subtitle">Your personal, shareable archive of human history</p>
             <div class="view-tabs">
                 <button class="view-tab active" data-view="timeline">Timeline</button>
+                <button class="view-tab" data-view="tapestry">Art Tapestry</button>
                 <button class="view-tab" data-view="map">World Map</button>
                 <button class="view-tab" data-view="quiz">Quiz</button>
                 <button class="view-tab" data-view="about">About</button>
@@ -83,6 +84,7 @@
             <span class="legend-item"><span class="legend-color religion"></span>Religions</span>
             <span class="legend-item"><span class="legend-color culture"></span>Cultures</span>
             <span class="legend-item"><span class="legend-color event"></span>Events</span>
+            <button id="showAllRegionsBtn" class="show-all-regions-btn" style="display: none;">Show all regions</button>
         </div>
 
         <div class="tag-filter-bar" id="tagFilterBar"></div>
@@ -269,6 +271,33 @@
         <button class="add-event-btn" id="addEventBtn">+ Add Event</button>
 
         </div> <!-- End Timeline View -->
+
+        <!-- Art Tapestry View -->
+        <div class="view-content tapestry-view" id="tapestryView">
+            <div class="tapestry-controls">
+                <div class="tap-mode-toggle" id="tapModeToggle">
+                    <button class="tap-mode-btn active" data-mode="origin">By Origin (where/when made)</button>
+                    <button class="tap-mode-btn" data-mode="consumed">By When I Experienced It</button>
+                </div>
+                <div class="tap-filters" id="tapMediumFilters"></div>
+                <button id="tapExpandAll" class="tap-expand-all" title="Expand or collapse all regions">Expand all</button>
+                <div class="tap-zoom" id="tapZoom">
+                    <button id="tapZoomOut" title="Zoom out">−</button>
+                    <input type="range" id="tapZoomSlider" min="0" max="100" step="1" value="0">
+                    <button id="tapZoomIn" title="Zoom in">+</button>
+                    <button id="tapZoomReset" title="Fit everything in view">Fit</button>
+                </div>
+                <div class="tap-stats" id="tapStats"></div>
+            </div>
+            <div class="tapestry-tl-container" id="tapContainer">
+                <div class="tapestry-tl-content" id="tapContent"></div>
+            </div>
+            <div class="tap-undated-tray" id="tapUndatedTray" style="display:none;"></div>
+            <div class="tap-detail" id="tapDetail" style="display:none;">
+                <button class="tap-detail-close" id="tapDetailClose">&times;</button>
+                <div class="tap-detail-body" id="tapDetailBody"></div>
+            </div>
+        </div>
 
         <!-- Map View -->
         <div class="view-content map-view" id="mapView">
@@ -534,6 +563,7 @@
 
     <!-- Leaflet JS for Map -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="tapestry.js"></script>
     <script src="data.js"></script>
     <script src="map-data.js"></script>
     <script src="map.js"></script>

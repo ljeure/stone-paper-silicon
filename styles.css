@@ -555,7 +555,80 @@ header h1 {
     border-right: 1px solid var(--secondary-color);
     z-index: 5;
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.region-label-name {
+    line-height: 1.2;
+}
+
+.region-label-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.region-action-btn {
+    background: transparent;
+    border: 1px solid var(--secondary-color);
+    border-radius: 4px;
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-size: 0.8rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.region-action-btn:hover {
+    background: var(--secondary-color);
+    color: var(--text-color);
+}
+
+/* Minimized region: thin strip in place of the full lane */
+.region-section.collapsed {
+    min-height: 0;
+}
+
+.region-collapsed-strip {
+    flex: 1;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.region-collapsed-strip:hover {
+    opacity: 1;
+}
+
+.show-all-regions-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--secondary-color);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.show-all-regions-btn:hover {
+    background: var(--secondary-color);
+    color: var(--text-color);
 }
 
 .region-timeline {
@@ -563,6 +636,7 @@ header h1 {
     flex: 1;
     min-height: 100px;
     overflow: visible;
+    cursor: crosshair;
 }
 
 /* Timeline events */
@@ -2647,3 +2721,317 @@ header h1 {
     0%, 30% { outline: 3px solid var(--state-color); outline-offset: 2px; }
     100% { outline: 3px solid transparent; outline-offset: 2px; }
 }
+
+/* ===================== Art Tapestry ===================== */
+:root { --tap-rowlabel: 160px; }
+.tapestry-view { padding: 0; }
+.tapestry-controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    padding: 14px 18px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5;
+}
+.tap-mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.tap-mode-btn {
+    background: var(--bg-tertiary); color: var(--text-secondary);
+    border: none; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.tap-mode-btn.active { background: var(--accent); color: #fff; }
+.tap-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.tap-filter-btn {
+    background: var(--bg-tertiary); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px;
+    cursor: pointer; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;
+    opacity: 0.5;
+}
+.tap-filter-btn.active { opacity: 1; color: var(--text-primary); border-color: var(--accent-light); }
+.tap-filter-btn.tap-empty { opacity: 0.3; }
+.tap-filter-count { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 0 7px; font-size: 11px; }
+.tap-stats { margin-left: auto; color: var(--text-secondary); font-size: 13px; }
+.tap-stats strong { color: var(--text-primary); }
+.tap-muted { color: var(--text-secondary); opacity: 0.7; }
+
+.tapestry-grid-wrap { overflow: auto; height: calc(100vh - 160px); padding: 0 0 40px; }
+/* No min-width:max-content — it let flex-wrap cells refuse to wrap and blow each
+   column out to thousands of px. Columns are sized by the inline grid-template
+   (minmax) in tapestry.js; the grid fills the wrap and scrolls only if needed. */
+.tapestry-grid { display: grid; align-items: stretch; width: 100%; }
+/* Cells must allow their flex children to wrap and never force track growth. */
+.tapestry-grid .tap-cell { min-width: 0; }
+.tapestry-grid .tap-chip { max-width: 100%; }
+
+.tap-corner { position: sticky; left: 0; top: 0; z-index: 4; background: var(--bg-secondary); }
+.tap-colhead {
+    position: sticky; top: 0; z-index: 3; background: var(--bg-secondary);
+    border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 8px 10px; text-align: center;
+}
+.tap-colhead-label { display: block; font-weight: 700; font-size: 13px; color: var(--text-primary); }
+.tap-colhead-sub { display: block; font-size: 11px; color: var(--text-secondary); }
+
+.tap-rowhead {
+    position: sticky; left: 0; z-index: 2; width: var(--tap-rowlabel);
+    display: flex; align-items: center; padding: 10px 12px;
+    font-weight: 700; font-size: 13px; color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+.tap-region-1 { background: var(--region-1); }
+.tap-region-2 { background: var(--region-2); }
+.tap-region-3 { background: var(--region-3); }
+.tap-region-4 { background: var(--region-4); }
+.tap-region-5 { background: var(--region-5); }
+
+.tap-cell {
+    border-left: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start;
+    min-height: 54px; background: rgba(255,255,255,0.012);
+}
+.tap-gap { background: repeating-linear-gradient(45deg, transparent, transparent 7px, rgba(255,255,255,0.025) 7px, rgba(255,255,255,0.025) 8px); }
+.tap-gap-mark { color: var(--text-secondary); opacity: 0.25; margin: auto; font-size: 18px; }
+
+.tap-chip {
+    display: inline-flex; align-items: center; gap: 4px; max-width: 150px;
+    padding: 2px 7px 2px 5px; border-radius: 11px; font-size: 11.5px; cursor: pointer;
+    background: var(--bg-tertiary); border: 1px solid transparent; color: var(--text-primary);
+    transition: transform .08s ease;
+}
+.tap-chip:hover { transform: translateY(-1px); border-color: var(--accent-light); }
+.tap-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tap-m-book { background: #3a3320; border-color: #d9a44133; }
+.tap-m-film { background: #1f3540; border-color: #4ea1d333; }
+.tap-m-music { background: #34203a; border-color: #b35cae33; }
+.tap-m-painting { background: #3a2820; border-color: #e07a5f33; }
+.tap-m-architecture { background: #28332e; border-color: #8aa39933; }
+.tap-m-food { background: #3a3320; border-color: #e9c46a33; }
+.tap-review { box-shadow: inset 0 0 0 1px #e9456044; }
+.tap-more { font-size: 11px; color: var(--text-secondary); align-self: center; padding: 0 4px; }
+
+.tap-detail {
+    position: fixed; right: 20px; bottom: 20px; width: 360px; max-height: 70vh; overflow: auto;
+    background: var(--bg-secondary); border: 1px solid var(--accent); border-radius: 12px;
+    padding: 18px; box-shadow: 0 8px 30px var(--shadow); z-index: 50;
+}
+.tap-detail-close { position: absolute; top: 8px; right: 12px; background: none; border: none; color: var(--text-secondary); font-size: 22px; cursor: pointer; }
+.tap-detail-title { font-size: 17px; font-weight: 700; margin-right: 20px; }
+.tap-detail-meta { color: var(--text-secondary); font-size: 13px; margin: 4px 0 12px; }
+.tap-detail-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.tap-detail-table td { padding: 3px 0; vertical-align: top; }
+.tap-detail-table td:first-child { color: var(--text-secondary); width: 90px; }
+.tap-stars { color: #e9c46a; letter-spacing: 1px; }
+.tap-detail-note { margin-top: 12px; font-size: 13px; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; border-top: 1px solid var(--border); padding-top: 10px; max-height: 30vh; overflow: auto; }
+.tap-detail-flag { margin-top: 10px; font-size: 12px; color: var(--accent-light); }
+.tap-error { padding: 40px; color: var(--accent-light); }
+
+/* Tapestry: filter "All" button, undated lane, expandable cells */
+.tap-fm-all { font-weight: 700; }
+.tap-more { cursor: pointer; user-select: none; }
+.tap-more:hover { color: var(--accent-light); text-decoration: underline; }
+.tap-colhead-undated { background: var(--bg-tertiary); opacity: 0.8; }
+.tap-colhead-undated .tap-colhead-label { color: var(--text-secondary); font-style: italic; }
+.tap-cell-undated { background: rgba(255,255,255,0.02); }
+
+/* ===== Art Tapestry: map to the app's parchment theme (fixes undefined vars) ===== */
+:root {
+    --bg-secondary: var(--surface-color);   /* #ede0c8 */
+    --bg-tertiary: #e4d6b8;
+    --accent: var(--primary-color);          /* #8b2500 */
+    --accent-light: #c47d10;
+    --border: #c9b896;
+    --text-primary: var(--text-color);       /* #1a1a1a */
+    --text-secondary: var(--text-muted);     /* #6b5b47 */
+    --shadow: rgba(60, 40, 10, 0.25);
+    /* region band tints (order in tapestry.js: Europe&ME, Asia, Africa, Americas, Pacific) */
+    --region-1: #e7dcc1;
+    --region-2: #e6d4c2;
+    --region-3: #e0d6bd;
+    --region-4: #e2dcc2;
+    --region-5: #dcdac2;
+}
+
+/* Column headers: give them a visible band and real height */
+.tapestry-grid .tap-colhead {
+    background: var(--secondary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding: 10px 8px;
+    min-height: 46px;
+}
+.tapestry-grid .tap-colhead-label { color: var(--text-color); font-weight: 700; }
+.tapestry-grid .tap-colhead-sub { color: var(--text-muted); }
+.tap-corner { background: var(--secondary-color); border-bottom: 2px solid var(--primary-color); }
+
+/* Region row labels: legible dark text on tinted band */
+.tapestry-grid .tap-rowhead { color: var(--text-color); border-right: 1px solid var(--border); }
+
+/* Cells */
+.tapestry-grid .tap-cell { background: rgba(255,255,255,0.18); overflow: hidden; }
+.tap-gap { background: repeating-linear-gradient(45deg, transparent, transparent 7px, rgba(139,37,0,0.06) 7px, rgba(139,37,0,0.06) 8px) !important; }
+
+/* Chips: LIGHT tints with DARK text (was dark-on-dark) */
+.tapestry-grid .tap-chip { color: #1a1a1a; border: 1px solid rgba(0,0,0,0.18); background: #e9dcc0; }
+.tapestry-grid .tap-chip:hover { border-color: var(--primary-color); }
+.tapestry-grid .tap-m-book { background: #cfe6cf; }          /* green */
+.tapestry-grid .tap-m-film { background: #cfe0ef; }          /* blue */
+.tapestry-grid .tap-m-music { background: #e8d2e4; }         /* purple */
+.tapestry-grid .tap-m-painting { background: #efd9c8; }      /* terracotta */
+.tapestry-grid .tap-m-architecture { background: #d6e2da; }  /* sage */
+.tapestry-grid .tap-m-food { background: #f0e3bf; }          /* wheat */
+.tap-review { box-shadow: inset 0 0 0 2px rgba(139,37,0,0.5); }
+
+/* Controls + toggle + filters */
+.tapestry-controls { background: var(--surface-color); border-bottom: 1px solid var(--border); }
+.tap-mode-btn { background: var(--secondary-color); color: var(--text-color); }
+.tap-mode-btn.active { background: var(--primary-color); color: #fff; }
+.tap-filter-btn { background: var(--secondary-color); color: var(--text-color); border-color: var(--border); }
+.tap-filter-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); opacity: 1; }
+.tap-filter-count { background: rgba(0,0,0,0.12); color: inherit; }
+.tap-stats, .tap-muted { color: var(--text-muted); }
+.tap-stats strong { color: var(--primary-color); }
+
+/* Detail panel */
+.tap-detail { background: var(--surface-color); border-color: var(--primary-color); }
+.tap-detail-title { color: var(--text-color); }
+.tap-detail-note { color: var(--text-color); }
+
+/* ============ Art Tapestry — TIMELINE layout (v2) ============ */
+.tapestry-view { padding: 0; display: flex; flex-direction: column; height: calc(100vh - 150px); }
+.tapestry-controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    padding: 12px 16px; background: var(--surface-color);
+    border-bottom: 1px solid var(--border); flex: 0 0 auto;
+}
+.tap-zoom { display: inline-flex; align-items: center; gap: 6px; }
+.tap-zoom button {
+    background: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border);
+    border-radius: 4px; width: 30px; height: 28px; cursor: pointer; font-size: 16px; line-height: 1;
+}
+.tap-zoom button#tapZoomReset { width: auto; padding: 0 10px; font-size: 12px; }
+.tap-zoom input[type=range] { width: 130px; }
+
+/* time axis */
+.tapestry-scale {
+    position: relative; height: 30px; overflow: hidden; flex: 0 0 auto;
+    background: var(--surface-color); border-bottom: 2px solid var(--primary-color);
+    padding-left: 140px;  /* clear the lane-label column */
+}
+.tap-scale-markers { position: relative; height: 100%; }
+.tap-scale-marker { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--border); }
+.tap-scale-marker span {
+    position: absolute; left: 4px; top: 6px; font-size: 11px; color: var(--text-muted); white-space: nowrap;
+}
+
+/* scrolling timeline body */
+.tapestry-tl-container { flex: 1 1 auto; overflow: auto; cursor: grab; position: relative; }
+.tapestry-tl-container.tap-grabbing { cursor: grabbing; user-select: none; }
+.tapestry-tl-content { position: relative; }
+
+/* region lanes */
+.tap-lane { position: relative; border-bottom: 1px solid var(--border); display: flex; align-items: stretch; }
+.tap-lane-label {
+    position: sticky; left: 0; z-index: 3; width: 140px; flex: 0 0 140px;
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; gap: 2px;
+    padding: 8px 10px; font-weight: 700; font-size: 12.5px; color: var(--text-color);
+    border-right: 1px solid var(--border);
+}
+/* keep the label text pinned to the top of tall lanes while scrolling vertically */
+.tap-lane-label > * { position: sticky; top: 8px; }
+.tap-region-1 .tap-lane-label { background: var(--region-1); }
+.tap-region-2 .tap-lane-label { background: var(--region-2); }
+.tap-region-3 .tap-lane-label { background: var(--region-3); }
+.tap-region-4 .tap-lane-label { background: var(--region-4); }
+.tap-region-5 .tap-lane-label { background: var(--region-5); }
+.tap-region-1 { background: color-mix(in srgb, var(--region-1) 35%, transparent); }
+.tap-region-2 { background: color-mix(in srgb, var(--region-2) 35%, transparent); }
+.tap-region-3 { background: color-mix(in srgb, var(--region-3) 35%, transparent); }
+.tap-region-4 { background: color-mix(in srgb, var(--region-4) 35%, transparent); }
+.tap-region-5 { background: color-mix(in srgb, var(--region-5) 35%, transparent); }
+.tap-lane-count { font-weight: 400; font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+.tap-lane-track { position: relative; flex: 0 0 auto; }
+
+/* event flags */
+.tap-ev {
+    position: absolute; display: inline-flex; align-items: center; gap: 3px;
+    height: 17px; max-width: 220px; padding: 0 6px 0 3px; border-radius: 9px;
+    font-size: 11px; cursor: pointer; white-space: nowrap; overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.18); color: #1a1a1a; background: #e9dcc0;
+    transition: transform .07s ease, box-shadow .07s ease;
+}
+.tap-ev:hover { transform: translateY(-1px); box-shadow: 0 2px 6px var(--shadow); z-index: 5; max-width: none; }
+.tap-ev-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.45); flex: 0 0 auto; }
+.tap-ev-label { overflow: hidden; text-overflow: ellipsis; }
+
+/* medium colors */
+.tap-m-book { background: #cfe6cf; }
+.tap-m-book .tap-ev-dot { background: #2e7d4f; }
+.tap-m-film { background: #cfe0ef; }
+.tap-m-film .tap-ev-dot { background: #2a6aa0; }
+.tap-m-music { background: #e8d2e4; }
+.tap-m-music .tap-ev-dot { background: #8e4a86; }
+.tap-m-painting { background: #efd9c8; }
+.tap-m-painting .tap-ev-dot { background: #b5623c; }
+.tap-m-architecture { background: #d6e2da; }
+.tap-m-architecture .tap-ev-dot { background: #4f7a66; }
+.tap-m-food { background: #f0e3bf; }
+.tap-m-food .tap-ev-dot { background: #b89320; }
+/* book rating shades (deeper green = higher rating) */
+.tap-m-book.tap-r5 { background: #b3dcb3; }
+.tap-m-book.tap-r4 { background: #c6e4c6; }
+.tap-m-book.tap-r3 { background: #d6ebd6; }
+.tap-m-book.tap-r2 { background: #e3f0e3; }
+.tap-m-book.tap-r1 { background: #eef5ee; }
+.tap-review { box-shadow: inset 0 0 0 2px rgba(139,37,0,0.45); }
+
+/* undated tray */
+.tap-undated-tray { flex: 0 0 auto; max-height: 130px; overflow: auto; padding: 8px 16px;
+    background: var(--surface-color); border-top: 1px solid var(--border); }
+.tap-undated-head { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+.tap-undated-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.tap-undated-chip { position: static; }
+
+/* legend handled via filter button colors */
+.tap-filter-btn.tap-fm-book.active { background: #2e7d4f; border-color: #2e7d4f; }
+.tap-filter-btn.tap-fm-film.active { background: #2a6aa0; border-color: #2a6aa0; }
+
+/* ===== Art Tapestry v3: sticky axis, collapse/expand, series ===== */
+/* axis now lives INSIDE the scroller: sticks on vertical scroll, pans on horizontal */
+.tap-axis { display: flex; position: sticky; top: 0; z-index: 6; height: 30px;
+    background: var(--surface-color); border-bottom: 2px solid var(--primary-color); }
+.tap-axis-corner { position: sticky; left: 0; z-index: 7; width: 140px; flex: 0 0 140px;
+    display: flex; align-items: center; padding: 0 10px; font-size: 11px; font-weight: 700;
+    color: var(--text-muted); background: var(--surface-color); border-right: 1px solid var(--border); }
+.tap-axis-track { position: relative; flex: 0 0 auto; }
+.tap-axis-track .tap-scale-marker { position: absolute; top: 0; height: 30px; border-left: 1px solid var(--border); }
+.tap-axis-track .tap-scale-marker span { position: absolute; left: 4px; top: 7px; font-size: 11px;
+    color: var(--text-muted); white-space: nowrap; }
+
+/* container scrolls both ways now (vertical for expanded lanes) */
+.tapestry-tl-container { overflow: auto; }
+
+/* lane label: clickable, caret, text pinned just under the sticky axis */
+.tap-lane-label { cursor: pointer; }
+.tap-lane-label:hover { filter: brightness(0.97); }
+.tap-lane-label > * { position: sticky; top: 36px; }
+.tap-caret { display: inline-block; width: 12px; color: var(--primary-color); font-size: 11px; }
+.tap-collapsed .tap-lane-label { align-items: center; flex-direction: row; }
+.tap-collapsed .tap-lane-label > * { position: static; }
+
+/* expand-all button */
+.tap-expand-all { background: var(--secondary-color); color: var(--text-color);
+    border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; height: 30px;
+    cursor: pointer; font-size: 12px; font-weight: 600; }
+
+/* condensed strip ticks */
+.tap-strip { } /* height set inline */
+.tap-tick { position: absolute; top: 9px; width: 3px; height: 20px; border-radius: 2px;
+    background: #999; opacity: 0.85; cursor: pointer; }
+.tap-tick:hover { outline: 1px solid var(--primary-color); opacity: 1; height: 24px; top: 7px; }
+.tap-tick.tap-m-book { background: #4a7c3f; }
+.tap-tick.tap-m-film { background: #3a6ea5; }
+.tap-tick.tap-m-music { background: #8e44ad; }
+.tap-tick.tap-m-painting { background: #c0622d; }
+.tap-tick.tap-m-architecture { background: #5a8a6a; }
+.tap-tick.tap-m-food { background: #c79a3a; }
+
+/* series chip */
+.tap-ev.tap-series { background: #efe2bf; border-color: #c0a35c; font-weight: 600; }
+.tap-ev.tap-series .tap-ev-dot { background: #9c7a2e; }
+.tap-series-count { background: var(--primary-color); color: #fff; border-radius: 9px;
+    padding: 0 6px; font-size: 10px; margin-left: 3px; flex: 0 0 auto; }
