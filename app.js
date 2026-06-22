@@ -15,6 +15,8 @@ class TimelineApp {
         this.draggedEvent = null;
         this.dragStartY = 0;
         this.userFilters = {}; // { "Luke": true, "Jia": true, "Default": true } — populated dynamically
+        this.panMoved = false; // true while a drag-pan is in progress, so a click-create can be suppressed
+        this.collapsedRegions = new Set(this.loadCollapsedRegions()); // region ids minimized on the left
 
         this.init();
     }
@@ -73,6 +75,9 @@ class TimelineApp {
         // Panel close
         document.getElementById('closePanel').addEventListener('click', () => this.closeDetailPanel());
 
+        // Show all regions (visible only when something is minimized)
+        document.getElementById('showAllRegionsBtn').addEventListener('click', () => this.showAllRegions());
+
         // Add event modal
         document.getElementById('addEventBtn').addEventListener('click', () => this.openAddEventModal());
         document.getElementById('cancelAddEvent').addEventListener('click', () => this.closeAddEventModal());
@@ -105,8 +110,10 @@ class TimelineApp {
             this.searchQuery = e.target.value.toLowerCase();
             this.render();
             if (this.searchQuery) {
-                const filtered = this.getFilteredEvents();
-                this.zoomToFitEvents(filtered);
+                // Exclude always-visible periods from the zoom-fit calculation,
+                // otherwise they'd stretch the range to cover all of history.
+                const matches = this.getFilteredEvents(false);
+                this.zoomToFitEvents(matches);
             }
         });
 
@@ -294,6 +301,7 @@ class TimelineApp {
         container.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('timeline-event')) return;
             isDown = true;
+            this.panMoved = false;
             container.style.cursor = 'grabbing';
             startX = e.pageX - container.offsetLeft;
             scrollLeft = container.scrollLeft;
@@ -314,6 +322,7 @@ class TimelineApp {
             e.preventDefault();
             const x = e.pageX - container.offsetLeft;
             const walk = (x - startX) * 1.5;
+            if (Math.abs(x - startX) > 4) this.panMoved = true;
             container.scrollLeft = scrollLeft - walk;
             this.syncScaleScroll();
         });
@@ -432,17 +441,30 @@ class TimelineApp {
         const years = events.flatMap(e => [e.year, e.endYear || e.year]);
         const minY = Math.min(...years);
         const maxY = Math.max(...years);
-        const padding = Math.max((maxY - minY) * 0.1, 50);
         const container = document.querySelector('.timeline-container');
         const containerW = container.clientWidth - 120; // minus region label width
-        const yearRange = (maxY + padding) - (minY - padding);
-        const totalRange = this.maxYear - this.minYear;
-        const neededZoom = (containerW / this.timelineWidth) * (totalRange / yearRange);
+
+        // Measure positions at zoom=1 so the math works for both linear
+        // and experience-scale layouts (yearToPosition is non-linear in
+        // experience mode, so year-range math gives the wrong center).
+        const prevZoom = this.zoomLevel;
+        this.zoomLevel = 1;
+        const minPos1 = this.yearToPosition(minY);
+        const maxPos1 = this.yearToPosition(maxY);
+        this.zoomLevel = prevZoom;
+
+        const span1 = Math.max(maxPos1 - minPos1, 40);
+        const padding1 = span1 * 0.1 + 40;
+        const targetSpan1 = span1 + padding1 * 2;
+
+        const neededZoom = containerW / targetSpan1;
         this.zoomLevel = Math.max(0.5, Math.min(10, neededZoom));
         document.getElementById('zoomSlider').value = this.zoomToSlider(this.zoomLevel);
         this.render();
-        // Scroll to center the results
-        const centerX = this.yearToPosition((minY + maxY) / 2);
+
+        // Scroll to center on the midpoint of the matched range (in pixel space)
+        const midPos1 = (minPos1 + maxPos1) / 2;
+        const centerX = midPos1 * this.zoomLevel;
         container.scrollLeft = centerX - containerW / 2;
         this.syncScaleScroll();
     }
@@ -483,8 +505,50 @@ class TimelineApp {
         }
     }
 
-    getFilteredEvents() {
-        let events = timelineData.events;
+    // Inverse of yearToPosition: convert a pixel X (relative to a region-timeline) back to a year.
+    positionToYear(px) {
+        const width = this.timelineWidth * this.zoomLevel;
+        const x = Math.max(0, Math.min(width, px));
+
+        if (this.useExperienceScale) {
+            const markers = timelineData.experienceScale.markers;
+            const minExp = markers[0].experience;
+            const maxExp = markers[markers.length - 1].experience;
+            const targetExp = minExp + (x / width) * (maxExp - minExp);
+
+            let lower = markers[0];
+            let upper = markers[markers.length - 1];
+            for (let i = 0; i < markers.length - 1; i++) {
+                if (targetExp >= markers[i].experience && targetExp <= markers[i + 1].experience) {
+                    lower = markers[i];
+                    upper = markers[i + 1];
+                    break;
+                }
+            }
+            const expProgress = (targetExp - lower.experience) / (upper.experience - lower.experience);
+            return lower.year + expProgress * (upper.year - lower.year);
+        } else {
+            const range = this.maxYear - this.minYear;
+            return this.minYear + (x / width) * range;
+        }
+    }
+
+    // Round a raw year to a "nice" value scaled to its magnitude, so click-to-create
+    // pre-fills clean numbers (e.g. -10000, 1900) rather than -9847 or 1903.
+    roundYear(year) {
+        const abs = Math.abs(year);
+        let step;
+        if (abs >= 10000) step = 1000;
+        else if (abs >= 2000) step = 100;
+        else if (abs >= 200) step = 10;
+        else step = 1;
+        return Math.round(year / step) * step;
+    }
+
+    getFilteredEvents(includePeriods = true) {
+        const isPeriod = (e) => e.category === 'period' || e.entityType === 'period';
+        const periods = timelineData.events.filter(isPeriod);
+        let events = timelineData.events.filter(e => !isPeriod(e));
 
         // Apply search filter
         if (this.searchQuery) {
@@ -498,9 +562,9 @@ class TimelineApp {
             const filters = Array.isArray(this.currentFilter) ? this.currentFilter : [this.currentFilter];
             events = events.filter(e => {
                 return filters.some(f => {
-                    // New entity-type based filtering
+                    // Periods are handled separately and always shown
                     if (f === 'period') {
-                        return e.category === 'period' || e.entityType === 'period';
+                        return false;
                     }
                     if (f === 'state') {
                         return e.category === 'state' || e.entityType === 'state';
@@ -535,6 +599,11 @@ class TimelineApp {
                 if (!e.tags || e.tags.length === 0) return false;
                 return this.activeTagFilters.some(tag => e.tags.includes(tag));
             });
+        }
+
+        // Re-add periods so they stay visible regardless of search/filters
+        if (includePeriods) {
+            events = [...periods, ...events];
         }
 
         // Filter to visible year range
@@ -675,20 +744,73 @@ class TimelineApp {
         const width = this.timelineWidth * this.zoomLevel;
         container.style.width = `${width + 120}px`;
 
+        // Toggle the global "Show all regions" button based on what's minimized
+        const showAllBtn = document.getElementById('showAllRegionsBtn');
+        if (showAllBtn) showAllBtn.style.display = this.collapsedRegions.size > 0 ? 'inline-block' : 'none';
+
         const events = this.getFilteredEvents();
         console.log('Filtered events:', events.length, 'Year range:', this.minYear, 'to', this.maxYear);
 
         // Render each region
         REGIONS.forEach((region, regionIndex) => {
+            const collapsed = this.collapsedRegions.has(region.id);
             const regionDiv = document.createElement('div');
-            regionDiv.className = 'region-section';
+            regionDiv.className = 'region-section' + (collapsed ? ' collapsed' : '');
             regionDiv.dataset.region = region.id;
 
-            // Region label
+            // Get events for this region (needed for the collapsed strip count too)
+            const regionEvents = events.filter(e => e.region === region.id);
+
+            // Region label with name + minimize / focus controls
             const labelDiv = document.createElement('div');
             labelDiv.className = 'region-label';
-            labelDiv.textContent = region.name;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'region-label-name';
+            nameSpan.textContent = region.name;
+            labelDiv.appendChild(nameSpan);
+
+            const actions = document.createElement('div');
+            actions.className = 'region-label-actions';
+
+            // Focus: show only this region (collapse all others). Toggles back to "show all".
+            const focusBtn = document.createElement('button');
+            focusBtn.className = 'region-action-btn region-focus-btn';
+            const isOnlyVisible = !collapsed && this.collapsedRegions.size === REGIONS.length - 1;
+            focusBtn.textContent = '◎';
+            focusBtn.title = isOnlyVisible ? 'Show all regions' : 'Focus — show only this region';
+            focusBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isOnlyVisible) this.showAllRegions();
+                else this.focusRegion(region.id);
+            });
+            actions.appendChild(focusBtn);
+
+            // Minimize / expand this region
+            const collapseBtn = document.createElement('button');
+            collapseBtn.className = 'region-action-btn region-collapse-btn';
+            collapseBtn.textContent = collapsed ? '▸' : '▾';
+            collapseBtn.title = collapsed ? 'Expand' : 'Minimize';
+            collapseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleRegionCollapse(region.id);
+            });
+            actions.appendChild(collapseBtn);
+
+            labelDiv.appendChild(actions);
             regionDiv.appendChild(labelDiv);
+
+            // Collapsed: show a thin strip instead of the full timeline, click to expand.
+            if (collapsed) {
+                const strip = document.createElement('div');
+                strip.className = 'region-collapsed-strip';
+                strip.style.width = `${width}px`;
+                strip.textContent = `${regionEvents.length} item${regionEvents.length !== 1 ? 's' : ''} hidden — click to expand`;
+                strip.addEventListener('click', () => this.toggleRegionCollapse(region.id));
+                regionDiv.appendChild(strip);
+                container.appendChild(regionDiv);
+                return;
+            }
 
             // Region timeline area
             const timelineArea = document.createElement('div');
@@ -700,8 +822,9 @@ class TimelineApp {
             timelineArea.addEventListener('dragover', (e) => this.handleDragOver(e, region.id));
             timelineArea.addEventListener('drop', (e) => this.handleDrop(e, region.id));
 
-            // Get events for this region
-            const regionEvents = events.filter(e => e.region === region.id);
+            // Click an empty spot to start creating an event there (Google-Calendar style)
+            timelineArea.addEventListener('click', (e) => this.handleTimelineCreateClick(e, region.id, timelineArea));
+
             console.log(`Region ${region.name}: ${regionEvents.length} events`);
 
             // Layout events in rows within the region
@@ -1129,6 +1252,17 @@ class TimelineApp {
 
         document.getElementById('eventDescription').value = event.description || '';
 
+        // Show image if the event has one
+        const imageEl = document.getElementById('eventImage');
+        if (event.image) {
+            imageEl.src = event.image;
+            imageEl.alt = event.title;
+            imageEl.style.display = 'block';
+        } else {
+            imageEl.removeAttribute('src');
+            imageEl.style.display = 'none';
+        }
+
         // Show addedBy / createdBy info
         const addedByEl = document.getElementById('eventAddedBy');
         const creator = event.createdBy || event.addedBy;
@@ -1302,13 +1436,77 @@ class TimelineApp {
         }
     }
 
-    openAddEventModal() {
+    openAddEventModal(prefill = null) {
+        const form = document.getElementById('addEventForm');
+        form.reset();
+        if (prefill) {
+            if (prefill.year !== undefined && prefill.year !== null) {
+                document.getElementById('newEventYear').value = prefill.year;
+            }
+            if (prefill.endYear !== undefined && prefill.endYear !== null) {
+                document.getElementById('newEventEndYear').value = prefill.endYear;
+            }
+            if (prefill.region) {
+                document.getElementById('newEventRegion').value = prefill.region;
+            }
+        }
         document.getElementById('addEventModal').classList.add('open');
+        // Focus the title so the user can just type — start/end/region are already filled.
+        const titleInput = document.getElementById('newEventTitle');
+        if (titleInput) setTimeout(() => titleInput.focus(), 50);
     }
 
     closeAddEventModal() {
         document.getElementById('addEventModal').classList.remove('open');
         document.getElementById('addEventForm').reset();
+    }
+
+    // Click an empty spot on a region's lane → open Add Event with year + region pre-filled.
+    handleTimelineCreateClick(e, regionId, timelineArea) {
+        // Ignore clicks that landed on an existing event, and clicks that were really drag-pans.
+        if (e.target.closest('.timeline-event')) return;
+        if (this.panMoved) return;
+
+        const rect = timelineArea.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const year = this.roundYear(this.positionToYear(x));
+        this.openAddEventModal({ year, endYear: year, region: regionId });
+    }
+
+    // ---- Region focus / minimize ----
+    loadCollapsedRegions() {
+        try {
+            const saved = localStorage.getItem('timelineCollapsedRegions');
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    saveCollapsedRegions() {
+        try {
+            localStorage.setItem('timelineCollapsedRegions', JSON.stringify([...this.collapsedRegions]));
+        } catch (e) { /* ignore quota / privacy-mode errors */ }
+    }
+
+    toggleRegionCollapse(regionId) {
+        if (this.collapsedRegions.has(regionId)) this.collapsedRegions.delete(regionId);
+        else this.collapsedRegions.add(regionId);
+        this.saveCollapsedRegions();
+        this.render();
+    }
+
+    focusRegion(regionId) {
+        this.collapsedRegions = new Set(REGIONS.map(r => r.id).filter(id => id !== regionId));
+        this.saveCollapsedRegions();
+        this.render();
+    }
+
+    showAllRegions() {
+        this.collapsedRegions.clear();
+        this.saveCollapsedRegions();
+        this.render();
     }
 
     async handleAddEvent(e) {
