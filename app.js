@@ -1252,6 +1252,17 @@ class TimelineApp {
 
         document.getElementById('eventDescription').value = event.description || '';
 
+        // Show image if the event has one
+        const imageEl = document.getElementById('eventImage');
+        if (event.image) {
+            imageEl.src = event.image;
+            imageEl.alt = event.title;
+            imageEl.style.display = 'block';
+        } else {
+            imageEl.removeAttribute('src');
+            imageEl.style.display = 'none';
+        }
+
         // Show addedBy / createdBy info
         const addedByEl = document.getElementById('eventAddedBy');
         const creator = event.createdBy || event.addedBy;

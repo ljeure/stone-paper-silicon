@@ -14,7 +14,11 @@ const MIME_TYPES = {
     '.js': 'application/javascript',
     '.json': 'application/json',
     '.geojson': 'application/geo+json',
-    '.svg': 'image/svg+xml'
+    '.svg': 'image/svg+xml',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp'
 };
 
 // Build sorted index of available GeoJSON snapshot years
@@ -164,8 +168,9 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Serve static files
-    let filePath = req.url === '/' ? '/index.html' : req.url;
+    // Serve static files (strip query string, e.g. cache-busting ?v=4)
+    let urlPath = req.url.split('?')[0];
+    let filePath = urlPath === '/' ? '/index.html' : urlPath;
     filePath = path.join(__dirname, filePath);
 
     const ext = path.extname(filePath);
